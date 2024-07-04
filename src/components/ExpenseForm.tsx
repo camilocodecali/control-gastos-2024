@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DraftExpense } from "../types";
 import type { Value } from "../types";
 import { categories } from "../data/categories";
@@ -17,7 +17,16 @@ export default function ExpenseForm() {
     })
 
     const [error, setError] = useState('')
-    const { dispatch } = useBudget()
+    const [previousAmount, setPreviousAmount] = useState(0)
+    const { dispatch, state, remainingBudget} = useBudget()
+
+    useEffect(()=>{
+        if(state.editingId){
+            const editingExpense = state.expenses.filter(currentExpense => currentExpense.id === state.editingId)[0]
+            setExpense(editingExpense)
+            setPreviousAmount(editingExpense.amount)
+        }
+    },[state.editingId])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement>) => {
         const {name, value} = e.target
@@ -46,16 +55,28 @@ export default function ExpenseForm() {
             return 
         }
 
-        //Agregar un nuevo gasto
-        dispatch({type: 'add-expense', payload: {expense}})
+        // Validar que no me pase del limite
+        if((expense.amount - previousAmount) > remainingBudget){
+            setError('Ese gasto se sale del saldo disponible')
+            return 
+        }
+
+        //Agregar o actualizar un gasto
+
+        if(state.editingId){
+            dispatch({type: 'update-expense', payload: {expense: {id: state.editingId, ...expense}}})
+        }else{
+            dispatch({type: 'add-expense', payload: {expense}})
+        }
 
         //reinicar State
         setExpense({
             amount: 0,
             expenseName: '',
             category: '',
-            date: new Date()
+            date: new Date(),
         })
+        setPreviousAmount(0)
         
     }
 
@@ -64,7 +85,7 @@ export default function ExpenseForm() {
         {error && <ErrorMessage>{error}</ErrorMessage>}
         <legend className="uppercase text-center text-2xl font-black border-b-2 border-indigo-500 py-2"
         >
-            Nuevo Gasto
+        {state.editingId ? 'Editar Gasto': 'Nuevo Gasto' }    
         </legend>
         <div className="flex flex-col gap-2">
             <label 
@@ -139,7 +160,7 @@ export default function ExpenseForm() {
         <input 
             type="submit"
             className="bg-indigo-600 hover:bg-indigo-800 cursor-pointer w-full p-2 text-white uppercase font-bold rounded-lg"
-            value={'Registrar Gasto'}
+            value={state.editingId ? 'Editar Gasto': 'Nuevo Gasto' } 
         />
     </form>
   )
