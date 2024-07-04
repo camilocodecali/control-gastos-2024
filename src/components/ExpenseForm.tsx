@@ -5,6 +5,8 @@ import { categories } from "../data/categories";
 import DatePicker from 'react-date-picker';
 import 'react-date-picker/dist/DatePicker.css';
 import 'react-calendar/dist/Calendar.css';
+import ErrorMessage from "./ErrorMessage";
+import { useBudget } from "../hooks/useBudget";
 
 export default function ExpenseForm() {
     const [expense, setExpense]  = useState<DraftExpense>({
@@ -13,6 +15,9 @@ export default function ExpenseForm() {
         category: '',
         date: new Date()
     })
+
+    const [error, setError] = useState('')
+    const { dispatch } = useBudget()
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement>) => {
         const {name, value} = e.target
@@ -31,8 +36,32 @@ export default function ExpenseForm() {
         })
         
     }
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        //Validar
+        if(Object.values(expense).includes('')){
+            setError('Todos los campos son obligatorios')
+            return 
+        }
+
+        //Agregar un nuevo gasto
+        dispatch({type: 'add-expense', payload: {expense}})
+
+        //reinicar State
+        setExpense({
+            amount: 0,
+            expenseName: '',
+            category: '',
+            date: new Date()
+        })
+        
+    }
+
   return (
-    <form className="space-y-5" action="">
+    <form className="space-y-5" onSubmit={handleSubmit}>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
         <legend className="uppercase text-center text-2xl font-black border-b-2 border-indigo-500 py-2"
         >
             Nuevo Gasto
